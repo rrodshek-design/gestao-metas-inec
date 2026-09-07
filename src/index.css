@@ -1,0 +1,30 @@
+@import "tailwindcss";
+
+@theme {
+  --color-bento-bg: #0f172a;
+  --color-bento-card: #1e293b;
+  --color-bento-border: #334155;
+}
+
+@layer base {
+  body {
+    @apply bg-bento-bg text-slate-200 antialiased;
+  }
+}
+
+@layer utilities {
+  .bento-card {
+    @apply bg-bento-card border border-bento-border rounded-2xl shadow-lg;
+  }
+  
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 4px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    @apply bg-slate-700 rounded-full;
+  }
+}
+
