@@ -253,6 +253,11 @@ app.get('/api/admin/logs', async (req, res) => {
   }
 });
 
+// Keep API failures as JSON instead of returning the SPA HTML fallback.
+app.use('/api', (_req, res) => {
+  res.status(404).json({ error: 'Endpoint da API não encontrado. Reinicie o servidor atualizado.' });
+});
+
 async function startServer() {
   if (process.env.NODE_ENV === 'production' || process.env.OWNER_LOGIN) {
     await ensureConfiguredOwner();

@@ -36,6 +36,17 @@ export default function OwnerDashboard() {
     return session ? { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` } : null;
   }
 
+  async function readApiResponse(response: Response) {
+    const contentType = response.headers.get('content-type') || '';
+    if (!contentType.includes('application/json')) {
+      const text = await response.text();
+      throw new Error(response.status === 404
+        ? 'A API administrativa não está disponível. Reinicie o servidor com npm run dev.'
+        : `A API retornou uma resposta inesperada (${response.status}).`);
+    }
+    return response.json();
+  }
+
   useEffect(() => {
     fetchData();
   }, []);
@@ -108,7 +119,7 @@ export default function OwnerDashboard() {
       const headers = await getAdminHeaders();
       if (!headers) throw new Error('Sessão expirada');
       const response = await fetch('/api/admin/users', { method: 'POST', headers, body: JSON.stringify(newUser) });
-      const result = await response.json();
+      const result = await readApiResponse(response);
       if (!response.ok) throw new Error(result.error || 'Não foi possível criar o acesso.');
       setNewUser({ name: '', enrollment: '', password: '', role: 'AGENT', whatsapp: '' });
       setFeedback(`Acesso ${result.enrollment} criado com sucesso.`);
@@ -145,7 +156,7 @@ export default function OwnerDashboard() {
         headers,
         body: JSON.stringify(editForm)
       });
-      const result = await response.json();
+      const result = await readApiResponse(response);
       if (!response.ok) throw new Error(result.error || 'Não foi possível salvar o usuário.');
       setEditingUser(null);
       setFeedback(`Acesso ${result.enrollment} atualizado com sucesso.`);
@@ -185,7 +196,7 @@ export default function OwnerDashboard() {
       const headers = await getAdminHeaders();
       if (!headers) throw new Error('Sessão expirada');
       const response = await fetch('/api/admin/users/import', { method: 'POST', headers, body: JSON.stringify({ users }) });
-      const result = await response.json();
+      const result = await readApiResponse(response);
       if (!response.ok) throw new Error(result.error || 'Não foi possível importar a planilha.');
       setFeedback(`${result.imported} acesso(s) importado(s) com sucesso.`);
       fetchData();
