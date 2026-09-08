@@ -13,7 +13,8 @@ import {
   Activity,
   ShieldAlert,
   Upload,
-  UserPlus
+  UserPlus,
+  Pencil
 } from 'lucide-react';
 import Papa from 'papaparse';
 import { cn } from '../../lib/utils';
@@ -27,6 +28,8 @@ export default function OwnerDashboard() {
   const [importing, setImporting] = useState(false);
   const [feedback, setFeedback] = useState<string | null>(null);
   const [newUser, setNewUser] = useState({ name: '', enrollment: '', password: '', role: 'AGENT', whatsapp: '' });
+  const [editingUser, setEditingUser] = useState<UserProfile | null>(null);
+  const [editForm, setEditForm] = useState({ name: '', enrollment: '', password: '', role: 'AGENT', whatsapp: '' });
 
   async function getAdminHeaders() {
     const { data: { session } } = await supabase.auth.getSession();
@@ -109,6 +112,43 @@ export default function OwnerDashboard() {
       if (!response.ok) throw new Error(result.error || 'Não foi possível criar o acesso.');
       setNewUser({ name: '', enrollment: '', password: '', role: 'AGENT', whatsapp: '' });
       setFeedback(`Acesso ${result.enrollment} criado com sucesso.`);
+      fetchData();
+    } catch (error: any) {
+      setFeedback(error.message);
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  const startEditing = (user: UserProfile) => {
+    setEditingUser(user);
+    setEditForm({
+      name: user.name,
+      enrollment: user.enrollment,
+      password: '',
+      role: user.role,
+      whatsapp: user.whatsapp || ''
+    });
+    setFeedback(null);
+  };
+
+  const updateUser = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!editingUser) return;
+    setCreating(true);
+    setFeedback(null);
+    try {
+      const headers = await getAdminHeaders();
+      if (!headers) throw new Error('Sessão expirada');
+      const response = await fetch(`/api/admin/users/${editingUser.id}`, {
+        method: 'PATCH',
+        headers,
+        body: JSON.stringify(editForm)
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || 'Não foi possível salvar o usuário.');
+      setEditingUser(null);
+      setFeedback(`Acesso ${result.enrollment} atualizado com sucesso.`);
       fetchData();
     } catch (error: any) {
       setFeedback(error.message);
@@ -240,6 +280,35 @@ export default function OwnerDashboard() {
         </div>
       </section>
 
+      {editingUser && (
+        <form onSubmit={updateUser} className="bg-[#1e293b] border border-sky-500/40 rounded-xl p-5 space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Pencil size={18} className="text-sky-400" />
+              <h3 className="font-bold text-white">Editar acesso: {editingUser.enrollment}</h3>
+            </div>
+            <button type="button" onClick={() => setEditingUser(null)} className="text-xs text-slate-400 hover:text-white">Cancelar</button>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3">
+            <input required placeholder="Nome" value={editForm.name} onChange={(event) => setEditForm({ ...editForm, name: event.target.value })} className="input-admin" />
+            <input required placeholder="Matrícula/login" value={editForm.enrollment} onChange={(event) => setEditForm({ ...editForm, enrollment: event.target.value })} className="input-admin" />
+            <input type="password" minLength={6} placeholder="Nova senha (opcional)" value={editForm.password} onChange={(event) => setEditForm({ ...editForm, password: event.target.value })} className="input-admin" />
+            <select value={editForm.role} onChange={(event) => setEditForm({ ...editForm, role: event.target.value })} className="input-admin">
+              <option value="AGENT">Agente</option>
+              <option value="COORDINATOR">Coordenador</option>
+              <option value="GN">Gerente</option>
+              <option value="BOARD">Diretor</option>
+              <option value="ADMIN">Administrador</option>
+              <option value="OWNER">Criador / proprietário</option>
+            </select>
+            <input placeholder="WhatsApp" value={editForm.whatsapp} onChange={(event) => setEditForm({ ...editForm, whatsapp: event.target.value })} className="input-admin" />
+          </div>
+          <button disabled={creating} className="px-4 py-2 bg-sky-600 hover:bg-sky-500 rounded-lg text-xs font-bold text-white disabled:opacity-50">
+            {creating ? 'Salvando...' : 'Salvar alterações'}
+          </button>
+        </form>
+      )}
+
       {/* Stats - Bento Style */}
       <div className="grid grid-cols-12 gap-4">
         <div className="col-span-12 md:col-span-3 bg-[#1e293b] border border-slate-800 p-4 rounded-xl flex flex-col justify-between h-32 shadow-sm transition-all hover:border-slate-700">
@@ -324,6 +393,13 @@ export default function OwnerDashboard() {
                       </span>
                     </td>
                     <td className="px-6 py-4 text-center">
+                      <button
+                        onClick={() => startEditing(user)}
+                        title="Editar usuário e senha"
+                        className="mr-2 text-[10px] font-bold px-2 py-1 rounded border text-sky-400 border-sky-500/20 hover:bg-sky-500/10 transition-all"
+                      >
+                        EDITAR
+                      </button>
                       <button 
                         onClick={() => toggleUserStatus(user)}
                         className={cn(

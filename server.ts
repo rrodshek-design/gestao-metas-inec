@@ -122,6 +122,38 @@ async function createManagedUser(input: { enrollment: unknown; password: unknown
   return profile;
 }
 
+async function updateManagedUser(userId: string, input: { enrollment: unknown; password?: unknown; name?: unknown; role: unknown; whatsapp?: unknown; unit_id?: unknown; polo_id?: unknown }) {
+  const admin = getSupabaseAdmin();
+  const enrollment = normalizeEnrollment(input.enrollment);
+  const role = normalizeRole(input.role);
+  const password = String(input.password ?? '');
+  const authUpdate: Record<string, unknown> = {
+    email: `${enrollment}@metas.com`,
+    email_confirm: true,
+    user_metadata: { name: input.name || enrollment, enrollment, role }
+  };
+
+  if (password) {
+    if (password.length < 6) throw new Error('A senha deve ter pelo menos 6 caracteres.');
+    authUpdate.password = password;
+  }
+
+  const { error: authError } = await admin.auth.admin.updateUserById(userId, authUpdate);
+  if (authError) throw new Error(authError.message);
+
+  const { data, error } = await admin.from('profiles').update({
+    name: String(input.name || enrollment),
+    enrollment,
+    whatsapp: input.whatsapp ? String(input.whatsapp) : null,
+    role,
+    unit_id: input.unit_id ? String(input.unit_id) : null,
+    polo_id: input.polo_id ? String(input.polo_id) : null
+  }).eq('id', userId).select().single();
+
+  if (error) throw new Error(error.message);
+  return data;
+}
+
 async function ensureConfiguredOwner() {
   const login = process.env.OWNER_LOGIN;
   const password = process.env.OWNER_PASSWORD;
@@ -145,6 +177,16 @@ app.post('/api/admin/users', async (req, res) => {
     await requireOwner(req);
     const profile = await createManagedUser(req.body);
     res.status(201).json(profile);
+  } catch (error: any) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+app.patch('/api/admin/users/:userId', async (req, res) => {
+  try {
+    await requireOwner(req);
+    const profile = await updateManagedUser(req.params.userId, req.body);
+    res.json(profile);
   } catch (error: any) {
     res.status(400).json({ error: error.message });
   }
