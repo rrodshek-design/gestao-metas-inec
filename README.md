@@ -181,16 +181,18 @@ O repositório usado neste projeto é: [github.com/rrodshek-design/gestao-metas-
     - **Site URL:** `https://SEU-PROJETO.vercel.app`
     - **Redirect URLs:** `https://SEU-PROJETO.vercel.app/**`
 
-### Limitação das rotas administrativas
+### Rotas administrativas na Vercel
 
-O arquivo `server.ts` executa um servidor Express local na porta 3000 e contém as rotas `/api/admin/block-user` e `/api/admin/logs`. A configuração acima publica o frontend Vite como site estático; essas rotas Express não são iniciadas automaticamente pela Vercel.
+As rotas administrativas são expostas pela Vercel Function `api/[...path].ts`, que reutiliza o Express do arquivo `server.ts`. Para elas funcionarem na publicação, cadastre também em **Environment Variables** da Vercel:
 
-Assim, o login, cadastro e consultas diretas ao Supabase funcionam na Vercel, mas as ações administrativas que dependem de `/api/admin/*` precisam de uma destas opções:
+- `SUPABASE_URL`
+- `SUPABASE_SERVICE_ROLE_KEY`
+- `OWNER_LOGIN`
+- `OWNER_PASSWORD`
 
-1. Migrar essas rotas para Vercel Functions;
-2. Hospedar o servidor `server.ts` em Render, Railway ou outro serviço Node e configurar o frontend para chamar a URL desse servidor.
+Depois de salvar as variáveis, faça um novo deploy. A alteração de senha, criação de acessos, importação XLSX, bloqueio e logs usam `/api/admin/*` através dessa Function.
 
-Para publicar somente a versão demonstrativa ou o frontend com Supabase, não é necessário configurar `SUPABASE_SERVICE_ROLE_KEY` na Vercel. Se o servidor Express for hospedado separadamente, configure nele `SUPABASE_URL` e `SUPABASE_SERVICE_ROLE_KEY` como variáveis privadas.
+Nunca coloque `SUPABASE_SERVICE_ROLE_KEY` em variáveis `VITE_` ou no código do frontend.
 
 ## 7. Atualizações futuras
 
