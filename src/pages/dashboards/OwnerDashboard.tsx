@@ -152,10 +152,10 @@ export default function OwnerDashboard() {
     try {
       const headers = await getAdminHeaders();
       if (!headers) throw new Error('Sessão expirada');
-      const response = await fetch(`/api/admin/users/${editingUser.id}`, {
+      const response = await fetch('/api/admin/update-user', {
         method: 'PATCH',
         headers,
-        body: JSON.stringify(editForm)
+        body: JSON.stringify({ userId: editingUser.id, ...editForm })
       });
       const result = await readApiResponse(response);
       if (!response.ok) throw new Error(result.error || 'Não foi possível salvar o usuário.');
