@@ -63,20 +63,13 @@ export default function OwnerDashboard() {
       const pData = profilesResponse.ok ? await profilesResponse.json() : null;
       const lData = logsResponse.ok ? await logsResponse.json() : null;
 
-      if (!pData) {
-        setProfiles(mockProfiles);
-      } else {
-        setProfiles(pData);
-      }
+      setProfiles(Array.isArray(pData) ? pData : []);
 
-      if (!lData) {
-        setLogs(mockLogs);
-      } else {
-        setLogs(lData);
-      }
-    } catch (err) {
-      setProfiles(mockProfiles);
-      setLogs(mockLogs);
+      setLogs(Array.isArray(lData) ? lData : []);
+    } catch (err: any) {
+      setProfiles([]);
+      setLogs([]);
+      setFeedback(err.message || 'Não foi possível carregar os usuários.');
     } finally {
       setLoading(false);
     }
@@ -119,7 +112,7 @@ export default function OwnerDashboard() {
     try {
       const headers = await getAdminHeaders();
       if (!headers) throw new Error('Sessão expirada');
-      const response = await fetch('/api/admin/users', { method: 'POST', headers, body: JSON.stringify(newUser) });
+      const response = await fetch('/api/admin/create-user', { method: 'POST', headers, body: JSON.stringify(newUser) });
       const result = await readApiResponse(response);
       if (!response.ok) throw new Error(result.error || 'Não foi possível criar o acesso.');
       setNewUser({ name: '', enrollment: '', password: '', role: 'AGENT', whatsapp: '' });
@@ -133,6 +126,10 @@ export default function OwnerDashboard() {
   };
 
   const startEditing = (user: UserProfile) => {
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(user.id)) {
+      setFeedback('Este usuário não possui um ID válido do Supabase. Atualize a lista e tente novamente.');
+      return;
+    }
     setEditingUser(user);
     setEditForm({
       name: user.name,
