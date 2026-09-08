@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
 import { mockProfiles, mockLogs } from '../../mockData';
 import { UserProfile, ActivityLog } from '../../types';
+import * as XLSX from 'xlsx';
 import { 
   Search, 
   UserX, 
@@ -10,7 +11,9 @@ import {
   History,
   Users as UsersIcon,
   Activity,
-  ShieldAlert
+  ShieldAlert,
+  Upload,
+  UserPlus
 } from 'lucide-react';
 import Papa from 'papaparse';
 import { cn } from '../../lib/utils';
@@ -20,6 +23,15 @@ export default function OwnerDashboard() {
   const [logs, setLogs] = useState<ActivityLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [creating, setCreating] = useState(false);
+  const [importing, setImporting] = useState(false);
+  const [feedback, setFeedback] = useState<string | null>(null);
+  const [newUser, setNewUser] = useState({ name: '', enrollment: '', password: '', role: 'AGENT', whatsapp: '' });
+
+  async function getAdminHeaders() {
+    const { data: { session } } = await supabase.auth.getSession();
+    return session ? { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` } : null;
+  }
 
   useEffect(() => {
     fetchData();
@@ -27,16 +39,22 @@ export default function OwnerDashboard() {
 
   async function fetchData() {
     try {
-      const { data: pData, error: pError } = await supabase.from('profiles').select('*');
-      const { data: lData, error: lError } = await supabase.from('activity_logs').select('*').order('created_at', { ascending: false });
+      const headers = await getAdminHeaders();
+      if (!headers) throw new Error('Sessão expirada');
+      const [profilesResponse, logsResponse] = await Promise.all([
+        fetch('/api/admin/users', { headers }),
+        fetch('/api/admin/logs', { headers })
+      ]);
+      const pData = profilesResponse.ok ? await profilesResponse.json() : null;
+      const lData = logsResponse.ok ? await logsResponse.json() : null;
 
-      if (pError || !pData) {
+      if (!pData) {
         setProfiles(mockProfiles);
       } else {
         setProfiles(pData);
       }
 
-      if (lError || !lData) {
+      if (!lData) {
         setLogs(mockLogs);
       } else {
         setLogs(lData);
@@ -57,9 +75,11 @@ export default function OwnerDashboard() {
 
     try {
       // Use our server API for blocking (to handle Auth admin operations)
+      const headers = await getAdminHeaders();
+      if (!headers) throw new Error('Sessão expirada');
       await fetch('/api/admin/block-user', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify({ userId: user.id, blocked: user.is_active })
       });
       
@@ -74,6 +94,65 @@ export default function OwnerDashboard() {
       fetchData();
     } catch (err) {
       console.error('Error toggling status:', err);
+    }
+  };
+
+  const createUser = async (event: React.FormEvent) => {
+    event.preventDefault();
+    setCreating(true);
+    setFeedback(null);
+    try {
+      const headers = await getAdminHeaders();
+      if (!headers) throw new Error('Sessão expirada');
+      const response = await fetch('/api/admin/users', { method: 'POST', headers, body: JSON.stringify(newUser) });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || 'Não foi possível criar o acesso.');
+      setNewUser({ name: '', enrollment: '', password: '', role: 'AGENT', whatsapp: '' });
+      setFeedback(`Acesso ${result.enrollment} criado com sucesso.`);
+      fetchData();
+    } catch (error: any) {
+      setFeedback(error.message);
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  const importSpreadsheet = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) return;
+
+    setImporting(true);
+    setFeedback(null);
+    try {
+      const workbook = XLSX.read(await file.arrayBuffer(), { type: 'array' });
+      const sheet = workbook.Sheets[workbook.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, { defval: '' });
+      const users = rows.map((row) => {
+        const normalized = Object.fromEntries(Object.entries(row).map(([key, value]) => [
+          key.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]/g, ''), value
+        ]));
+        return {
+          enrollment: normalized.matricula || normalized.login,
+          password: normalized.senha,
+          role: normalized.tipodeconta || normalized.tipo || normalized.role,
+          name: normalized.nome || normalized.name || normalized.matricula,
+          whatsapp: normalized.whatsapp
+        };
+      });
+
+      if (!users.length) throw new Error('A planilha não possui linhas para importar.');
+      const headers = await getAdminHeaders();
+      if (!headers) throw new Error('Sessão expirada');
+      const response = await fetch('/api/admin/users/import', { method: 'POST', headers, body: JSON.stringify({ users }) });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || 'Não foi possível importar a planilha.');
+      setFeedback(`${result.imported} acesso(s) importado(s) com sucesso.`);
+      fetchData();
+    } catch (error: any) {
+      setFeedback(error.message);
+    } finally {
+      setImporting(false);
     }
   };
 
@@ -122,6 +201,44 @@ export default function OwnerDashboard() {
           </button>
         </div>
       </header>
+
+      <section className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+        <form onSubmit={createUser} className="bg-[#1e293b] border border-slate-800 rounded-xl p-5 space-y-4">
+          <div className="flex items-center gap-2">
+            <UserPlus size={18} className="text-sky-400" />
+            <h3 className="font-bold text-white">Criar acesso</h3>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <input required placeholder="Nome" value={newUser.name} onChange={(event) => setNewUser({ ...newUser, name: event.target.value })} className="input-admin" />
+            <input required placeholder="Matrícula/login" value={newUser.enrollment} onChange={(event) => setNewUser({ ...newUser, enrollment: event.target.value })} className="input-admin" />
+            <input required type="password" minLength={6} placeholder="Senha" value={newUser.password} onChange={(event) => setNewUser({ ...newUser, password: event.target.value })} className="input-admin" />
+            <select value={newUser.role} onChange={(event) => setNewUser({ ...newUser, role: event.target.value })} className="input-admin">
+              <option value="AGENT">Agente</option>
+              <option value="COORDINATOR">Coordenador</option>
+              <option value="GN">Gerente</option>
+              <option value="BOARD">Diretor</option>
+              <option value="ADMIN">Administrador</option>
+              <option value="OWNER">Criador / proprietário</option>
+            </select>
+          </div>
+          <button disabled={creating} className="px-4 py-2 bg-sky-600 hover:bg-sky-500 rounded-lg text-xs font-bold text-white disabled:opacity-50">
+            {creating ? 'Criando...' : 'Criar acesso'}
+          </button>
+        </form>
+
+        <div className="bg-[#1e293b] border border-slate-800 rounded-xl p-5 space-y-4">
+          <div className="flex items-center gap-2">
+            <Upload size={18} className="text-emerald-400" />
+            <h3 className="font-bold text-white">Importar acessos por XLSX</h3>
+          </div>
+          <p className="text-xs text-slate-400">A primeira linha deve conter: <strong>matricula</strong>, <strong>senha</strong>, <strong>tipo_de_conta</strong>. Opcionalmente: nome e whatsapp.</p>
+          <label className="inline-flex cursor-pointer px-4 py-2 bg-emerald-600 hover:bg-emerald-500 rounded-lg text-xs font-bold text-white">
+            {importing ? 'Importando...' : 'Escolher arquivo XLSX'}
+            <input type="file" accept=".xlsx,.xls" onChange={importSpreadsheet} disabled={importing} className="hidden" />
+          </label>
+          {feedback && <p className="text-xs text-sky-300">{feedback}</p>}
+        </div>
+      </section>
 
       {/* Stats - Bento Style */}
       <div className="grid grid-cols-12 gap-4">

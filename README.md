@@ -36,7 +36,16 @@ npm run build
     - **service_role key** (somente para o servidor; nunca publique esta chave no frontend)
 5. Abra **SQL Editor > New query**, cole o SQL abaixo e clique em **Run**.
 
-O cadastro e os dashboards atuais usam as tabelas `profiles` e `activity_logs`:
+O cadastro e os dashboards atuais usam as tabelas `profiles` e `activity_logs`. O proprietário pode criar acessos individuais ou importar uma planilha XLSX pelo painel. A planilha deve ter uma linha de cabeçalho com:
+
+| matricula | senha | tipo_de_conta | nome | whatsapp |
+| --- | --- | --- | --- | --- |
+| 1001 | Senha@123 | agente | Ana Souza | 11999999999 |
+| 1002 | Senha@123 | coordenador | Carlos Lima | 11999999998 |
+| 1003 | Senha@123 | gerente | Maria Silva | 11999999997 |
+| 1004 | Senha@123 | diretor | Joao Santos | 11999999996 |
+
+Os tipos aceitos são `agente`, `coordenador`, `gerente`, `diretor`, `administrador`, `criador` e também os códigos internos `AGENT`, `COORDINATOR`, `GN`, `BOARD`, `ADMIN` e `OWNER`.
 
 ```sql
 create table if not exists public.profiles (
@@ -107,6 +116,10 @@ VITE_SUPABASE_ANON_KEY=SUA_CHAVE_ANON_PUBLICA
 SUPABASE_URL=https://SEU-PROJETO.supabase.co
 SUPABASE_SERVICE_ROLE_KEY=SUA_CHAVE_SERVICE_ROLE
 
+# Criador e gerenciador geral inicial
+OWNER_LOGIN=digoslab
+OWNER_PASSWORD=DEFINA_A_SENHA_LOCALMENTE
+
 # Opcional, caso algum recurso de IA seja habilitado
 GEMINI_API_KEY=SUA_CHAVE_GEMINI
 
@@ -118,8 +131,11 @@ Regras importantes:
 
 - `VITE_SUPABASE_ANON_KEY` pode ser usada no frontend, desde que as políticas RLS estejam configuradas.
 - Nunca coloque `SUPABASE_SERVICE_ROLE_KEY` em código frontend, commit do GitHub ou variável `VITE_`.
+- `OWNER_PASSWORD` também é segredo: use localmente a senha desejada e não publique esse valor no GitHub ou na Vercel.
 - O `.gitignore` já bloqueia arquivos `.env`; mantenha apenas valores fictícios no `.env.example`.
 - Após alterar variáveis, reinicie o servidor de desenvolvimento.
+
+Ao iniciar o servidor com `OWNER_LOGIN` e `OWNER_PASSWORD` configurados, ele cria ou atualiza automaticamente o usuário proprietário. Para o acesso solicitado, use `digoslab` como login e defina no `.env` a senha escolhida por você. O servidor converte o login em `digoslab@metas.com` internamente para o Supabase Auth.
 
 ## 5. Publicar no GitHub
 

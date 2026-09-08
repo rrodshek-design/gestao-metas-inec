@@ -99,7 +99,7 @@ export default function Login() {
 
         <form onSubmit={handleLogin} className="space-y-6">
           <div className="space-y-2">
-            <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest pl-1">Matrícula</label>
+            <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest pl-1">Matrícula ou login</label>
             <div className="relative group">
               <User className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-600 group-focus-within:text-sky-500 transition-colors" size={18} />
               <input
@@ -109,7 +109,7 @@ export default function Login() {
                 value={enrollment}
                 onChange={(e) => setEnrollment(e.target.value)}
                 className="w-full pl-10 pr-4 py-3 bg-[#0f172a] border border-slate-700 rounded-xl focus:border-sky-500 outline-none text-white transition-all placeholder:text-slate-700 text-sm disabled:opacity-50"
-                placeholder="Ex: 12345"
+                placeholder="Ex: 12345 ou digoslab"
               />
             </div>
           </div>
