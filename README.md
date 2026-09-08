@@ -183,7 +183,7 @@ O repositório usado neste projeto é: [github.com/rrodshek-design/gestao-metas-
 
 ### Rotas administrativas na Vercel
 
-As rotas administrativas são expostas pela Vercel Function `api/admin/[...path].ts`, que reutiliza o Express do arquivo `server.ts`. Para elas funcionarem na publicação, cadastre também em **Environment Variables** da Vercel:
+As rotas administrativas são expostas pela Vercel Function `api/[...path].ts`, que reutiliza o Express do arquivo `server.ts`. Para elas funcionarem na publicação, cadastre também em **Environment Variables** da Vercel:
 
 - `SUPABASE_URL`
 - `SUPABASE_SERVICE_ROLE_KEY`
