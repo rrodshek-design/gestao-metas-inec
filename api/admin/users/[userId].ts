@@ -29,6 +29,9 @@ export default async function handler(req: any, res: any) {
   }
 
   try {
+    const userId = String(req.query?.userId || req.params?.userId || '').trim();
+    if (!userId) throw new Error('Identificador do usuário não informado.');
+
     const authorization = req.headers.authorization;
     if (!authorization?.startsWith('Bearer ')) throw new Error('Sessão não informada.');
 
@@ -60,7 +63,7 @@ export default async function handler(req: any, res: any) {
     };
     if (password) authUpdate.password = password;
 
-    const { error: updateAuthError } = await admin.auth.admin.updateUserById(req.params.userId, authUpdate);
+    const { error: updateAuthError } = await admin.auth.admin.updateUserById(userId, authUpdate);
     if (updateAuthError) throw new Error(updateAuthError.message);
 
     const { data, error: updateProfileError } = await admin.from('profiles')
@@ -72,7 +75,7 @@ export default async function handler(req: any, res: any) {
         unit_id: body.unit_id ? String(body.unit_id) : null,
         polo_id: body.polo_id ? String(body.polo_id) : null
       })
-      .eq('id', req.params.userId)
+      .eq('id', userId)
       .select()
       .single();
     if (updateProfileError) throw new Error(updateProfileError.message);

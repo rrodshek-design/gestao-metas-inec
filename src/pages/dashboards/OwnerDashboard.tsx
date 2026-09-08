@@ -40,9 +40,10 @@ export default function OwnerDashboard() {
     const contentType = response.headers.get('content-type') || '';
     if (!contentType.includes('application/json')) {
       const text = await response.text();
+      const detail = text.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 240);
       throw new Error(response.status === 404
         ? 'A API administrativa não está disponível. Reinicie o servidor com npm run dev.'
-        : `A API retornou uma resposta inesperada (${response.status}).`);
+        : `A API retornou uma resposta inesperada (${response.status}). ${detail}`);
     }
     return response.json();
   }
