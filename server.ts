@@ -59,7 +59,7 @@ function normalizeRole(value: unknown) {
 }
 
 function normalizeEnrollment(value: unknown) {
-  const enrollment = String(value ?? '').trim();
+  const enrollment = String(value ?? '').trim().toLowerCase();
   if (!enrollment) throw new Error('A matrícula é obrigatória.');
   return enrollment;
 }

@@ -23,7 +23,7 @@ export default function Login() {
     setError(null);
 
     // Transform enrollment to dummy email for Supabase Auth
-    const email = `${enrollment}@metas.com`;
+    const email = `${enrollment.trim().toLowerCase()}@metas.com`;
 
     try {
       const { error } = await supabase.auth.signInWithPassword({
