@@ -281,6 +281,11 @@ async function startServer() {
   });
 }
 
-if (process.env.VERCEL !== '1') {
+const isDirectExecution = process.argv[1] && (
+  process.argv[1].endsWith('server.ts') ||
+  process.argv[1].endsWith('dist/server.cjs')
+);
+
+if (isDirectExecution) {
   startServer();
 }
