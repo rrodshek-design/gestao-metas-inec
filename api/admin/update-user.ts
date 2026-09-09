@@ -23,6 +23,10 @@ function normalizeRole(value: unknown) {
   return role;
 }
 
+function requiresAuthAccount(role: string) {
+  return !['AGENT', 'COORDINATOR'].includes(role);
+}
+
 export default async function handler(req: any, res: any) {
   if (req.method !== 'PATCH') return res.status(405).json({ error: 'Método não permitido.' });
 
@@ -36,8 +40,9 @@ export default async function handler(req: any, res: any) {
     const name = String(body.name || '').trim();
     const role = normalizeRole(body.role);
     const password = String(body.password || '');
+    const needsAuthAccount = requiresAuthAccount(role);
     if (!userId || !enrollment || !name) throw new Error('Usuário, nome e matrícula são obrigatórios.');
-    if (password && password.length < 6) throw new Error('A senha deve ter pelo menos 6 caracteres.');
+    if (needsAuthAccount && password && password.length < 6) throw new Error('A senha deve ter pelo menos 6 caracteres.');
 
     const admin = getAdminClient();
     const { data: { user }, error: authError } = await admin.auth.getUser(authorization.slice(7));
@@ -49,15 +54,17 @@ export default async function handler(req: any, res: any) {
       throw new Error('Apenas o proprietário pode editar acessos.');
     }
 
-    const authUpdate: Record<string, unknown> = {
-      email: `${enrollment}@metas.com`,
-      email_confirm: true,
-      user_metadata: { name, enrollment, role }
-    };
-    if (password) authUpdate.password = password;
+    if (needsAuthAccount) {
+      const authUpdate: Record<string, unknown> = {
+        email: `${enrollment}@metas.com`,
+        email_confirm: true,
+        user_metadata: { name, enrollment, role }
+      };
+      if (password) authUpdate.password = password;
 
-    const { error: authUpdateError } = await admin.auth.admin.updateUserById(userId, authUpdate);
-    if (authUpdateError) throw new Error(authUpdateError.message);
+      const { error: authUpdateError } = await admin.auth.admin.updateUserById(userId, authUpdate);
+      if (authUpdateError) throw new Error(authUpdateError.message);
+    }
 
     const { data, error: profileError } = await admin.from('profiles').update({
       name,

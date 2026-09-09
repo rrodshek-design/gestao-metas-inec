@@ -58,6 +58,10 @@ function normalizeRole(value: unknown) {
   return normalized;
 }
 
+function requiresAuthAccount(role: string) {
+  return !['AGENT', 'COORDINATOR'].includes(role);
+}
+
 function normalizeEnrollment(value: unknown) {
   const enrollment = String(value ?? '').trim().toLowerCase();
   if (!enrollment) throw new Error('A matrícula é obrigatória.');
@@ -90,21 +94,31 @@ async function createManagedUser(input: { enrollment: unknown; password: unknown
   const admin = getSupabaseAdmin();
   const enrollment = normalizeEnrollment(input.enrollment);
   const password = String(input.password ?? '');
-  if (password.length < 6) throw new Error(`A senha da matrícula ${enrollment} deve ter pelo menos 6 caracteres.`);
 
   const role = normalizeRole(input.role);
-  const email = `${enrollment}@metas.com`;
-  const { data: authData, error: authError } = await admin.auth.admin.createUser({
-    email,
-    password,
-    email_confirm: true,
-    user_metadata: { name: input.name || enrollment, enrollment, role }
-  });
+  const needsAuthAccount = requiresAuthAccount(role);
 
-  if (authError) throw new Error(`${enrollment}: ${authError.message}`);
+  if (needsAuthAccount && password.length < 6) {
+    throw new Error(`A senha da matrícula ${enrollment} deve ter pelo menos 6 caracteres.`);
+  }
+
+  let authUserId = crypto.randomUUID();
+
+  if (needsAuthAccount) {
+    const email = `${enrollment}@metas.com`;
+    const { data: authData, error: authError } = await admin.auth.admin.createUser({
+      email,
+      password,
+      email_confirm: true,
+      user_metadata: { name: input.name || enrollment, enrollment, role }
+    });
+
+    if (authError) throw new Error(`${enrollment}: ${authError.message}`);
+    authUserId = authData.user.id;
+  }
 
   const { data: profile, error: profileError } = await admin.from('profiles').insert({
-    id: authData.user.id,
+    id: authUserId,
     name: String(input.name || enrollment),
     enrollment,
     whatsapp: input.whatsapp ? String(input.whatsapp) : null,
@@ -115,7 +129,9 @@ async function createManagedUser(input: { enrollment: unknown; password: unknown
   }).select().single();
 
   if (profileError) {
-    await admin.auth.admin.deleteUser(authData.user.id);
+    if (needsAuthAccount) {
+      await admin.auth.admin.deleteUser(authUserId);
+    }
     throw new Error(`${enrollment}: ${profileError.message}`);
   }
 
@@ -127,19 +143,26 @@ async function updateManagedUser(userId: string, input: { enrollment: unknown; p
   const enrollment = normalizeEnrollment(input.enrollment);
   const role = normalizeRole(input.role);
   const password = String(input.password ?? '');
-  const authUpdate: Record<string, unknown> = {
-    email: `${enrollment}@metas.com`,
-    email_confirm: true,
-    user_metadata: { name: input.name || enrollment, enrollment, role }
-  };
+  const needsAuthAccount = requiresAuthAccount(role);
 
-  if (password) {
-    if (password.length < 6) throw new Error('A senha deve ter pelo menos 6 caracteres.');
-    authUpdate.password = password;
+  if (needsAuthAccount && password && password.length < 6) {
+    throw new Error('A senha deve ter pelo menos 6 caracteres.');
   }
 
-  const { error: authError } = await admin.auth.admin.updateUserById(userId, authUpdate);
-  if (authError) throw new Error(authError.message);
+  if (needsAuthAccount) {
+    const authUpdate: Record<string, unknown> = {
+      email: `${enrollment}@metas.com`,
+      email_confirm: true,
+      user_metadata: { name: input.name || enrollment, enrollment, role }
+    };
+
+    if (password) {
+      authUpdate.password = password;
+    }
+
+    const { error: authError } = await admin.auth.admin.updateUserById(userId, authUpdate);
+    if (authError) throw new Error(authError.message);
+  }
 
   const { data, error } = await admin.from('profiles').update({
     name: String(input.name || enrollment),

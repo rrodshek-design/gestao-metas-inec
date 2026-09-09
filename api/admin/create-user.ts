@@ -7,6 +7,10 @@ const roles: Record<string, string> = {
   agente: 'AGENT', agent: 'AGENT'
 };
 
+function requiresAuthAccount(role: string) {
+  return !['AGENT', 'COORDINATOR'].includes(role);
+}
+
 function adminClient() {
   const url = process.env.SUPABASE_URL;
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -31,8 +35,9 @@ export default async function handler(req: any, res: any) {
     const password = String(body.password || '');
     const name = String(body.name || enrollment).trim();
     const role = roleOf(body.role);
+    const needsAuthAccount = requiresAuthAccount(role);
     if (!enrollment || !name) throw new Error('Nome e matrícula são obrigatórios.');
-    if (password.length < 6) throw new Error('A senha deve ter pelo menos 6 caracteres.');
+    if (needsAuthAccount && password.length < 6) throw new Error('A senha deve ter pelo menos 6 caracteres.');
 
     const admin = adminClient();
     const { data: { user }, error: authError } = await admin.auth.getUser(authorization.slice(7));
@@ -40,21 +45,30 @@ export default async function handler(req: any, res: any) {
     const { data: owner, error: ownerError } = await admin.from('profiles').select('role, is_active').eq('id', user.id).single();
     if (ownerError || owner?.role !== 'OWNER' || !owner.is_active) throw new Error('Apenas o proprietário pode criar acessos.');
 
-    const { data: authData, error: createError } = await admin.auth.admin.createUser({
-      email: `${enrollment}@metas.com`, password, email_confirm: true,
-      user_metadata: { name, enrollment, role }
-    });
-    if (createError || !authData.user) throw new Error(createError?.message || 'Não foi possível criar a conta.');
+    let authUserId: string = crypto.randomUUID();
+    let createdAuthUserId: string | null = null;
+
+    if (needsAuthAccount) {
+      const { data: authData, error: createError } = await admin.auth.admin.createUser({
+        email: `${enrollment}@metas.com`, password, email_confirm: true,
+        user_metadata: { name, enrollment, role }
+      });
+      if (createError || !authData.user) throw new Error(createError?.message || 'Não foi possível criar a conta.');
+      authUserId = authData.user.id;
+      createdAuthUserId = authData.user.id;
+    }
 
     const { data, error: profileError } = await admin.from('profiles').insert({
-      id: authData.user.id, name, enrollment, role,
+      id: authUserId, name, enrollment, role,
       whatsapp: body.whatsapp ? String(body.whatsapp) : null,
       unit_id: body.unit_id ? String(body.unit_id) : null,
       polo_id: body.polo_id ? String(body.polo_id) : null,
       is_active: true
     }).select().single();
     if (profileError) {
-      await admin.auth.admin.deleteUser(authData.user.id);
+      if (createdAuthUserId) {
+        await admin.auth.admin.deleteUser(createdAuthUserId);
+      }
       throw new Error(profileError.message);
     }
     return res.status(201).json(data);

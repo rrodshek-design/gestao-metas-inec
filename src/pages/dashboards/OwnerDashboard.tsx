@@ -31,6 +31,8 @@ export default function OwnerDashboard() {
   const [editingUser, setEditingUser] = useState<UserProfile | null>(null);
   const [editForm, setEditForm] = useState({ name: '', enrollment: '', password: '', role: 'AGENT', whatsapp: '' });
 
+  const requiresPassword = (role: string) => !['AGENT', 'COORDINATOR'].includes(role);
+
   async function getAdminHeaders() {
     const { data: { session } } = await supabase.auth.getSession();
     return session ? { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` } : null;
@@ -277,7 +279,15 @@ export default function OwnerDashboard() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <input required placeholder="Nome" value={newUser.name} onChange={(event) => setNewUser({ ...newUser, name: event.target.value })} className="input-admin" />
             <input required placeholder="Matrícula/login" value={newUser.enrollment} onChange={(event) => setNewUser({ ...newUser, enrollment: event.target.value })} className="input-admin" />
-            <input required type="password" minLength={6} placeholder="Senha" value={newUser.password} onChange={(event) => setNewUser({ ...newUser, password: event.target.value })} className="input-admin" />
+            <input
+              required={requiresPassword(newUser.role)}
+              type="password"
+              minLength={requiresPassword(newUser.role) ? 6 : undefined}
+              placeholder={requiresPassword(newUser.role) ? 'Senha' : 'Senha (opcional)'}
+              value={newUser.password}
+              onChange={(event) => setNewUser({ ...newUser, password: event.target.value })}
+              className="input-admin"
+            />
             <select value={newUser.role} onChange={(event) => setNewUser({ ...newUser, role: event.target.value })} className="input-admin">
               <option value="AGENT">Agente</option>
               <option value="COORDINATOR">Coordenador</option>
@@ -318,7 +328,15 @@ export default function OwnerDashboard() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3">
             <input required placeholder="Nome" value={editForm.name} onChange={(event) => setEditForm({ ...editForm, name: event.target.value })} className="input-admin" />
             <input required placeholder="Matrícula/login" value={editForm.enrollment} onChange={(event) => setEditForm({ ...editForm, enrollment: event.target.value })} className="input-admin" />
-            <input type="password" minLength={6} placeholder="Nova senha (opcional)" value={editForm.password} onChange={(event) => setEditForm({ ...editForm, password: event.target.value })} className="input-admin" />
+            <input
+              required={requiresPassword(editForm.role)}
+              type="password"
+              minLength={requiresPassword(editForm.role) ? 6 : undefined}
+              placeholder={requiresPassword(editForm.role) ? 'Nova senha' : 'Nova senha (opcional)'}
+              value={editForm.password}
+              onChange={(event) => setEditForm({ ...editForm, password: event.target.value })}
+              className="input-admin"
+            />
             <select value={editForm.role} onChange={(event) => setEditForm({ ...editForm, role: event.target.value })} className="input-admin">
               <option value="AGENT">Agente</option>
               <option value="COORDINATOR">Coordenador</option>
