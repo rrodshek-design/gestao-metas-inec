@@ -37,15 +37,19 @@ export default function OwnerDashboard() {
   }
 
   async function readApiResponse(response: Response) {
-    const contentType = response.headers.get('content-type') || '';
-    if (!contentType.includes('application/json')) {
-      const text = await response.text();
-      const detail = text.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 240);
+    const text = await response.text();
+    const trimmed = text.trim();
+
+    if (!trimmed) return null;
+
+    try {
+      return JSON.parse(trimmed);
+    } catch {
+      const detail = trimmed.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 240);
       throw new Error(response.status === 404
         ? 'A API administrativa não está disponível. Reinicie o servidor com npm run dev.'
         : `A API retornou uma resposta inesperada (${response.status}). ${detail}`);
     }
-    return response.json();
   }
 
   useEffect(() => {
@@ -56,15 +60,28 @@ export default function OwnerDashboard() {
     try {
       const headers = await getAdminHeaders();
       if (!headers) throw new Error('Sessão expirada');
+
       const [profilesResponse, logsResponse] = await Promise.all([
         fetch('/api/admin/users', { headers }),
         fetch('/api/admin/logs', { headers })
       ]);
-      const pData = profilesResponse.ok ? await profilesResponse.json() : null;
-      const lData = logsResponse.ok ? await logsResponse.json() : null;
+
+      const pData = await readApiResponse(profilesResponse);
+      const lData = await readApiResponse(logsResponse);
+
+      if (!profilesResponse.ok) {
+        throw new Error((pData && typeof pData === 'object' && 'error' in pData && typeof pData.error === 'string')
+          ? pData.error
+          : 'Não foi possível carregar os usuários.');
+      }
+
+      if (!logsResponse.ok) {
+        throw new Error((lData && typeof lData === 'object' && 'error' in lData && typeof lData.error === 'string')
+          ? lData.error
+          : 'Não foi possível carregar os logs.');
+      }
 
       setProfiles(Array.isArray(pData) ? pData : []);
-
       setLogs(Array.isArray(lData) ? lData : []);
     } catch (err: any) {
       setProfiles([]);
