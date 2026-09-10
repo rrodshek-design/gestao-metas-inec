@@ -27,6 +27,20 @@ export default function Dashboard() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [activeSection, setActiveSection] = useState('overview');
 
+  const formatRole = (role: string) => {
+    const labels: Record<string, string> = {
+      OWNER: 'Criador',
+      GN: 'Gerente',
+      COORDINATOR: 'Coordenador',
+      AGENT: 'Agente',
+      BOARD: 'Diretor',
+      ADMIN: 'Administrador',
+      CR: 'Regional'
+    };
+
+    return labels[role] || role;
+  };
+
   if (!profile) return null;
 
   const menuItems = [
@@ -107,7 +121,7 @@ export default function Dashboard() {
       items: [
         { label: 'Banco de dados', value: 'Supabase', detail: 'Conexão configurada' },
         { label: 'Autenticação', value: 'Ativa', detail: 'Login por matrícula ou usuário' },
-        { label: 'Perfil atual', value: profile.role, detail: 'Permissões definidas pelo seu perfil' }
+        { label: 'Perfil atual', value: formatRole(profile.role), detail: 'Permissões definidas pelo seu perfil' }
       ]
     },
     logs: {
@@ -199,7 +213,7 @@ export default function Dashboard() {
             {isSidebarOpen && (
               <div className="overflow-hidden">
                 <p className="text-xs font-bold text-white truncate">{profile.name}</p>
-                <p className="text-[10px] text-slate-500 truncate uppercase tracking-wider">{profile.role}</p>
+                <p className="text-[10px] text-slate-500 truncate uppercase tracking-wider">{formatRole(profile.role)}</p>
               </div>
             )}
           </div>

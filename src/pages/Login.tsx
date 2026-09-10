@@ -70,28 +70,28 @@ export default function Login() {
             </p>
             <div className="grid grid-cols-2 gap-2 pt-2">
               <button 
-                onClick={() => loginAsDemo('BOARD')}
+                onClick={() => loginAsDemo('OWNER')}
                 className="px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-[9px] font-bold text-white uppercase hover:border-sky-500 transition-all"
               >
-                Diretoria
-              </button>
-              <button 
-                onClick={() => loginAsDemo('CR')}
-                className="px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-[9px] font-bold text-white uppercase hover:border-sky-500 transition-all"
-              >
-                Regional
+                Criador
               </button>
               <button 
                 onClick={() => loginAsDemo('GN')}
                 className="px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-[9px] font-bold text-white uppercase hover:border-sky-500 transition-all"
               >
-                Gerência
+                Gerente
               </button>
               <button 
                 onClick={() => loginAsDemo('COORDINATOR')}
                 className="px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-[9px] font-bold text-white uppercase hover:border-sky-500 transition-all"
               >
                 Coordenador
+              </button>
+              <button 
+                onClick={() => loginAsDemo('AGENT')}
+                className="px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-[9px] font-bold text-white uppercase hover:border-sky-500 transition-all"
+              >
+                Agente
               </button>
             </div>
           </div>

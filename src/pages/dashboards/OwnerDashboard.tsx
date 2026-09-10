@@ -20,6 +20,20 @@ import Papa from 'papaparse';
 import { cn } from '../../lib/utils';
 
 export default function OwnerDashboard() {
+  const formatRole = (role: string) => {
+    const labels: Record<string, string> = {
+      OWNER: 'Criador',
+      GN: 'Gerente',
+      COORDINATOR: 'Coordenador',
+      AGENT: 'Agente',
+      BOARD: 'Diretor',
+      ADMIN: 'Administrador',
+      CR: 'Regional'
+    };
+
+    return labels[role] || role;
+  };
+
   const [profiles, setProfiles] = useState<UserProfile[]>([]);
   const [logs, setLogs] = useState<ActivityLog[]>([]);
   const [loading, setLoading] = useState(true);
@@ -293,8 +307,7 @@ export default function OwnerDashboard() {
               <option value="COORDINATOR">Coordenador</option>
               <option value="GN">Gerente</option>
               <option value="BOARD">Diretor</option>
-              <option value="ADMIN">Administrador</option>
-              <option value="OWNER">Criador / proprietário</option>
+              <option value="OWNER">Criador</option>
             </select>
           </div>
           <button disabled={creating} className="px-4 py-2 bg-sky-600 hover:bg-sky-500 rounded-lg text-xs font-bold text-white disabled:opacity-50">
@@ -342,8 +355,7 @@ export default function OwnerDashboard() {
               <option value="COORDINATOR">Coordenador</option>
               <option value="GN">Gerente</option>
               <option value="BOARD">Diretor</option>
-              <option value="ADMIN">Administrador</option>
-              <option value="OWNER">Criador / proprietário</option>
+              <option value="OWNER">Criador</option>
             </select>
             <input placeholder="WhatsApp" value={editForm.whatsapp} onChange={(event) => setEditForm({ ...editForm, whatsapp: event.target.value })} className="input-admin" />
           </div>
@@ -425,7 +437,7 @@ export default function OwnerDashboard() {
                     </td>
                     <td className="px-6 py-4">
                       <span className="px-2 py-1 bg-slate-800 border border-slate-700 text-slate-400 rounded text-[9px] font-bold tracking-tight">
-                        {user.role}
+                        {formatRole(user.role)}
                       </span>
                     </td>
                     <td className="px-6 py-4 text-center">

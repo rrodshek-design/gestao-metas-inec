@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useAuth } from '../../lib/AuthContext';
 import { 
   Plus, 
@@ -7,12 +7,14 @@ import {
   ClipboardCheck, 
   ChevronRight,
   Building2,
-  Trash2
+  Trash2,
+  DatabaseZap
 } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 import 'jspdf-autotable';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../../lib/utils';
+import { carregarPlanilha, PlanilhaLinha } from '../../lib/planilha';
 
 export default function CRDashboard() {
   const { profile } = useAuth();
@@ -23,6 +25,32 @@ export default function CRDashboard() {
   ]);
   const [newQuestion, setNewQuestion] = useState('');
   const [minDelivery, setMinDelivery] = useState(0);
+  const [sheetRows, setSheetRows] = useState<PlanilhaLinha[]>([]);
+  const [sheetLoading, setSheetLoading] = useState(false);
+  const [sheetError, setSheetError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const loadSheet = async () => {
+      setSheetLoading(true);
+      setSheetError(null);
+      try {
+        const data = await carregarPlanilha();
+        setSheetRows(data);
+      } catch (error: any) {
+        setSheetError(error.message || 'Não foi possível carregar a planilha.');
+      } finally {
+        setSheetLoading(false);
+      }
+    };
+
+    loadSheet();
+  }, []);
+
+  const totalUnidades = new Set(sheetRows.map((row) => row.unidade).filter(Boolean)).size;
+  const respondidas = sheetRows.filter((row) => row.meta && row.status && row.status.toLowerCase() !== 'pendente').length;
+  const pendentes = sheetRows.filter((row) => !row.meta || row.status?.toLowerCase() === 'pendente').length;
+  const entregues = sheetRows.filter((row) => row.status?.toLowerCase() === 'entregue').length;
+  const taxaResposta = totalUnidades > 0 ? Math.round((respondidas / Math.max(totalUnidades, 1)) * 100) : 0;
 
   const addQuestion = () => {
     if (!newQuestion) return;
@@ -229,51 +257,76 @@ export default function CRDashboard() {
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
                 <div className="p-4 bg-slate-900/40 rounded-xl border border-slate-800 flex flex-col justify-between h-24">
                   <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Respondidos</p>
-                  <p className="text-2xl font-bold text-white">18/20</p>
+                  <p className="text-2xl font-bold text-white">{respondidas}/{Math.max(totalUnidades, 1)}</p>
                 </div>
                 <div className="p-4 bg-slate-900/40 rounded-xl border border-slate-800 flex flex-col justify-between h-24">
-                  <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Média Atingida</p>
-                  <p className="text-2xl font-bold text-emerald-500">92%</p>
+                  <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Taxa de Resposta</p>
+                  <p className="text-2xl font-bold text-emerald-500">{taxaResposta}%</p>
                 </div>
                 <div className="p-4 bg-slate-900/40 rounded-xl border border-slate-800 flex flex-col justify-between h-24">
                   <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Pendentes</p>
-                  <p className="text-2xl font-bold text-rose-500">2</p>
+                  <p className="text-2xl font-bold text-rose-500">{pendentes}</p>
                 </div>
                 <div className="p-4 bg-gradient-to-br from-sky-600/20 to-indigo-600/20 rounded-xl border border-sky-500/20 flex flex-col justify-between h-24">
-                  <p className="text-[10px] text-sky-400 font-bold uppercase tracking-widest">Prazo</p>
-                  <p className="text-2xl font-bold text-white">2 dias</p>
+                  <p className="text-[10px] text-sky-400 font-bold uppercase tracking-widest">Entregues</p>
+                  <p className="text-2xl font-bold text-white">{entregues}</p>
                 </div>
               </div>
 
-              <div className="overflow-x-auto flex-1 custom-scrollbar">
-                <table className="w-full text-left text-xs">
-                  <thead className="bg-[#0f172a] border-b border-slate-800 sticky top-0 z-10">
-                    <tr>
-                      <th className="px-6 py-4 font-bold text-slate-500 uppercase tracking-widest">Unidade</th>
-                      <th className="px-6 py-4 font-bold text-slate-500 uppercase tracking-widest text-center">Meta Vendas</th>
-                      <th className="px-6 py-4 font-bold text-slate-500 uppercase tracking-widest text-center">Visitas</th>
-                      <th className="px-6 py-4 font-bold text-slate-500 uppercase tracking-widest text-right">Status</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-800/50">
-                    {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
-                      <tr key={i} className="hover:bg-slate-800/30 transition-colors">
-                        <td className="px-6 py-4 font-bold text-white">Unidade Regional {i < 10 ? `0${i}` : i}</td>
-                        <td className="px-6 py-4 text-slate-400 text-center font-mono">{10 + i * 2}</td>
-                        <td className="px-6 py-4 text-slate-400 text-center font-mono">{5 + i}</td>
-                        <td className="px-6 py-4 text-right">
-                          <span className={cn(
-                            "px-2 py-0.5 rounded text-[9px] font-bold tracking-tighter uppercase",
-                            i % 2 === 0 ? "bg-emerald-500/10 text-emerald-500 border border-emerald-500/20" : "bg-orange-500/10 text-orange-500 border border-orange-500/20"
-                          )}>
-                            {i % 2 === 0 ? 'ENTREGUE' : 'PENDENTE'}
-                          </span>
-                        </td>
+              {sheetError && (
+                <div className="mb-4 p-3 rounded-xl border border-amber-500/30 bg-amber-500/10 text-xs text-amber-300">
+                  {sheetError}
+                </div>
+              )}
+
+              {sheetLoading ? (
+                <div className="flex items-center gap-3 text-sm text-slate-400">
+                  <DatabaseZap size={16} className="animate-pulse text-sky-400" />
+                  Carregando planilha de metas...
+                </div>
+              ) : (
+                <div className="overflow-x-auto flex-1 custom-scrollbar">
+                  <table className="w-full text-left text-xs">
+                    <thead className="bg-[#0f172a] border-b border-slate-800 sticky top-0 z-10">
+                      <tr>
+                        <th className="px-6 py-4 font-bold text-slate-500 uppercase tracking-widest">Unidade</th>
+                        <th className="px-6 py-4 font-bold text-slate-500 uppercase tracking-widest text-center">Semana</th>
+                        <th className="px-6 py-4 font-bold text-slate-500 uppercase tracking-widest text-center">Meta</th>
+                        <th className="px-6 py-4 font-bold text-slate-500 uppercase tracking-widest text-center">Prazo</th>
+                        <th className="px-6 py-4 font-bold text-slate-500 uppercase tracking-widest text-right">Status</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                    </thead>
+                    <tbody className="divide-y divide-slate-800/50">
+                      {sheetRows.length === 0 ? (
+                        <tr>
+                          <td colSpan={5} className="px-6 py-10 text-center text-sm text-slate-400">
+                            Nenhuma linha foi carregada. Cole a URL da planilha em VITE_METAS_SHEET_URL no .env.
+                          </td>
+                        </tr>
+                      ) : (
+                        sheetRows.map((row, idx) => (
+                          <tr key={`${row.unidade}-${row.semana}-${idx}`} className="hover:bg-slate-800/30 transition-colors">
+                            <td className="px-6 py-4 font-bold text-white">{row.unidade || 'Sem unidade'}</td>
+                            <td className="px-6 py-4 text-slate-400 text-center font-mono">{row.semana || '--'}</td>
+                            <td className="px-6 py-4 text-slate-400 text-center font-mono">{row.meta || 'Sem resposta'}</td>
+                            <td className="px-6 py-4 text-slate-400 text-center font-mono">{row.prazo || '--'}</td>
+                            <td className="px-6 py-4 text-right">
+                              <span className={cn(
+                                "px-2 py-0.5 rounded text-[9px] font-bold tracking-tighter uppercase",
+                                (row.status || '').toLowerCase() === 'entregue'
+                                  ? "bg-emerald-500/10 text-emerald-500 border border-emerald-500/20"
+                                  : "bg-orange-500/10 text-orange-500 border border-orange-500/20"
+                              )}>
+                                {(row.status || 'PENDENTE').toUpperCase()}
+                              </span>
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
           </motion.div>
         )}

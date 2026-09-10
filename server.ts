@@ -36,6 +36,9 @@ function getSupabaseAdmin() {
 const roleAliases: Record<string, 'OWNER' | 'ADMIN' | 'BOARD' | 'GN' | 'CR' | 'COORDINATOR' | 'AGENT'> = {
   owner: 'OWNER',
   criador: 'OWNER',
+  criadordometas: 'OWNER',
+  proprietario: 'OWNER',
+  dono: 'OWNER',
   administrador: 'ADMIN',
   admin: 'ADMIN',
   diretor: 'BOARD',
@@ -44,9 +47,14 @@ const roleAliases: Record<string, 'OWNER' | 'ADMIN' | 'BOARD' | 'GN' | 'CR' | 'C
   gerente: 'GN',
   gerencia: 'GN',
   gn: 'GN',
+  gerenteoperacoes: 'GN',
+  gerentedeoperacoes: 'GN',
+  gerentedeoperacao: 'GN',
+  operacoes: 'GN',
   cr: 'CR',
   coordenador: 'COORDINATOR',
   coordinator: 'COORDINATOR',
+  coordenadorregional: 'COORDINATOR',
   agente: 'AGENT',
   agent: 'AGENT'
 };
