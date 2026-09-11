@@ -45,7 +45,7 @@ export default function OwnerDashboard() {
   const [editingUser, setEditingUser] = useState<UserProfile | null>(null);
   const [editForm, setEditForm] = useState({ name: '', enrollment: '', password: '', role: 'AGENT', whatsapp: '' });
 
-  const requiresPassword = (role: string) => !['AGENT', 'COORDINATOR'].includes(role);
+  const requiresPassword = (role: string) => !['AGENT', 'agente', 'agent'].includes(role);
 
   async function getAdminHeaders() {
     const { data: { session } } = await supabase.auth.getSession();
@@ -303,11 +303,15 @@ export default function OwnerDashboard() {
               className="input-admin"
             />
             <select value={newUser.role} onChange={(event) => setNewUser({ ...newUser, role: event.target.value })} className="input-admin">
-              <option value="AGENT">Agente</option>
-              <option value="COORDINATOR">Coordenador</option>
-              <option value="GN">Gerente</option>
-              <option value="BOARD">Diretor</option>
-              <option value="OWNER">Criador</option>
+              <option value="agente">Agente</option>
+              <option value="coordenadorchapada">Coordenador Chapada</option>
+              <option value="coordenadorcaatinga">Coordenador Caatinga</option>
+              <option value="coordenadorcerrado">Coordenador Cerrado</option>
+              <option value="gnchapada">GN Chapada</option>
+              <option value="gncaatinga">GN Caatinga</option>
+              <option value="gncerrado">GN Cerrado</option>
+              <option value="go">GO - Gerente de Operações</option>
+              <option value="adm">ADM</option>
             </select>
           </div>
           <button disabled={creating} className="px-4 py-2 bg-sky-600 hover:bg-sky-500 rounded-lg text-xs font-bold text-white disabled:opacity-50">
@@ -351,11 +355,15 @@ export default function OwnerDashboard() {
               className="input-admin"
             />
             <select value={editForm.role} onChange={(event) => setEditForm({ ...editForm, role: event.target.value })} className="input-admin">
-              <option value="AGENT">Agente</option>
-              <option value="COORDINATOR">Coordenador</option>
-              <option value="GN">Gerente</option>
-              <option value="BOARD">Diretor</option>
-              <option value="OWNER">Criador</option>
+              <option value="agente">Agente</option>
+              <option value="coordenadorchapada">Coordenador Chapada</option>
+              <option value="coordenadorcaatinga">Coordenador Caatinga</option>
+              <option value="coordenadorcerrado">Coordenador Cerrado</option>
+              <option value="gnchapada">GN Chapada</option>
+              <option value="gncaatinga">GN Caatinga</option>
+              <option value="gncerrado">GN Cerrado</option>
+              <option value="go">GO - Gerente de Operações</option>
+              <option value="adm">ADM</option>
             </select>
             <input placeholder="WhatsApp" value={editForm.whatsapp} onChange={(event) => setEditForm({ ...editForm, whatsapp: event.target.value })} className="input-admin" />
           </div>

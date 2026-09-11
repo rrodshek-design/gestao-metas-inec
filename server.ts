@@ -34,13 +34,14 @@ function getSupabaseAdmin() {
 }
 
 const roleAliases: Record<string, 'OWNER' | 'ADMIN' | 'BOARD' | 'GN' | 'CR' | 'COORDINATOR' | 'AGENT'> = {
+  adm: 'OWNER',
+  admin: 'ADMIN',
+  administrador: 'ADMIN',
   owner: 'OWNER',
   criador: 'OWNER',
   criadordometas: 'OWNER',
   proprietario: 'OWNER',
   dono: 'OWNER',
-  administrador: 'ADMIN',
-  admin: 'ADMIN',
   diretor: 'BOARD',
   diretoria: 'BOARD',
   board: 'BOARD',
@@ -50,17 +51,30 @@ const roleAliases: Record<string, 'OWNER' | 'ADMIN' | 'BOARD' | 'GN' | 'CR' | 'C
   gerenteoperacoes: 'GN',
   gerentedeoperacoes: 'GN',
   gerentedeoperacao: 'GN',
+  go: 'GN',
   operacoes: 'GN',
   cr: 'CR',
   coordenador: 'COORDINATOR',
   coordinator: 'COORDINATOR',
   coordenadorregional: 'COORDINATOR',
+  coordenadorchapada: 'COORDINATOR',
+  coordenadorcaatinga: 'COORDINATOR',
+  coordenadorcerrado: 'COORDINATOR',
+  gnchapada: 'GN',
+  gncaatinga: 'GN',
+  gncerrado: 'GN',
   agente: 'AGENT',
   agent: 'AGENT'
 };
 
 function normalizeRole(value: unknown) {
-  const role = String(value ?? '').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  const role = String(value ?? '')
+    .trim()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]/g, '');
+
   const normalized = roleAliases[role];
   if (!normalized) throw new Error(`Tipo de conta inválido: ${value}`);
   return normalized;

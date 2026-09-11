@@ -7,6 +7,7 @@ import { Lock, User, AlertCircle, Info } from 'lucide-react';
 
 export default function Login() {
   const [enrollment, setEnrollment] = useState('');
+  const [role, setRole] = useState('agente');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -115,6 +116,26 @@ export default function Login() {
           </div>
 
           <div className="space-y-2">
+            <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest pl-1">Cargo</label>
+            <select
+              value={role}
+              onChange={(e) => setRole(e.target.value)}
+              disabled={!isSupabaseConfigured}
+              className="w-full px-4 py-3 bg-[#0f172a] border border-slate-700 rounded-xl focus:border-sky-500 outline-none text-white transition-all text-sm disabled:opacity-50"
+            >
+              <option value="agente">Agente</option>
+              <option value="coordenadorchapada">Coordenador Chapada</option>
+              <option value="coordenadorcaatinga">Coordenador Caatinga</option>
+              <option value="coordenadorcerrado">Coordenador Cerrado</option>
+              <option value="gnchapada">GN Chapada</option>
+              <option value="gncaatinga">GN Caatinga</option>
+              <option value="gncerrado">GN Cerrado</option>
+              <option value="go">GO - Gerente de Operações</option>
+              <option value="adm">ADM</option>
+            </select>
+          </div>
+
+          <div className="space-y-2">
             <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest pl-1">Senha de Acesso</label>
             <div className="relative group">
               <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-600 group-focus-within:text-sky-500 transition-colors" size={18} />
@@ -138,6 +159,12 @@ export default function Login() {
             {loading ? 'Validando...' : 'Entrar no Sistema'}
           </button>
         </form>
+
+        <div className="mt-6 text-center">
+          <p className="text-slate-500 text-[10px] leading-relaxed">
+            Para coordenadores, GNs e ADM, informe o cargo e a senha da conta.
+          </p>
+        </div>
 
         <div className="mt-10 text-center">
           <p className="text-slate-500 text-[11px] font-bold uppercase tracking-tight">
