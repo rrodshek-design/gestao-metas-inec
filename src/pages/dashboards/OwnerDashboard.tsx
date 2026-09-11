@@ -62,9 +62,16 @@ export default function OwnerDashboard() {
       return JSON.parse(trimmed);
     } catch {
       const detail = trimmed.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 240);
-      throw new Error(response.status === 404
-        ? 'A API administrativa não está disponível. Reinicie o servidor com npm run dev.'
-        : `A API retornou uma resposta inesperada (${response.status}). ${detail}`);
+
+      if (response.status === 404) {
+        throw new Error('A API administrativa não está disponível. Reinicie o servidor com npm run dev.');
+      }
+
+      if (response.status >= 500) {
+        throw new Error('Não foi possível concluir a operação. Verifique o arquivo XLSX e tente novamente.');
+      }
+
+      throw new Error(detail || 'A API retornou uma resposta inesperada.');
     }
   }
 
